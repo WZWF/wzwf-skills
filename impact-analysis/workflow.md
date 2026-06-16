@@ -5,9 +5,16 @@
 ### Step 1.1: 确认分析目标
 
 从用户输入中提取：
+
+**类/方法级分析**：
 - **目标类名**：如 `LockUtils`
 - **目标方法名**（可选）：如 `tryLock`
 - **变更描述**（可选）：用户打算改什么
+
+**字段级分析**（加字段/删字段/改字段）：
+- **Entity 类名**：如 `User`
+- **字段名**：如 `email`
+- 或 **表名.字段名**：如 `user.email`
 
 ### Step 1.2: 定位项目根目录
 
@@ -16,6 +23,7 @@
 
 ### Step 1.3: 运行扫描脚本
 
+**类/方法级分析**：
 ```bash
 python "<SKILL_DIR>/scripts/impact-scanner.py" "<PROJECT_ROOT>" \
   --target "ClassName.methodName" \
@@ -23,17 +31,31 @@ python "<SKILL_DIR>/scripts/impact-scanner.py" "<PROJECT_ROOT>" \
   -o impact-map.json
 ```
 
+**字段级分析**：
+```bash
+python "<SKILL_DIR>/scripts/field-impact-scanner.py" "<PROJECT_ROOT>" \
+  --target "User.email" \
+  -o field-impact.json
+```
+
 等待脚本完成，检查 stderr 输出的摘要信息。
 
 ### Step 1.4: 读取地图 JSON
 
-读取 `impact-map.json`，重点关注：
+**类/方法级分析** — 读取 `impact-map.json`：
 - `risk_assessment.level` → 整体风险等级
 - `risk_assessment.factors` → 风险因素列表
 - `call_graph.callers` → 谁调用了目标
 - `call_graph.callees` → 目标调用了谁
 - `spring_deps` → Spring 隐式依赖
 - `cycles` → 循环调用
+
+**字段级分析** — 读取 `field-impact.json`：
+- `target` → 目标字段信息
+- `entities` → 涉及的 Entity 类和字段定义
+- `sql_refs` → MyBatis XML 中的 SQL 引用
+- `mapper_methods` → Mapper 方法
+- `call_chain` → Mapper → Service → Controller 调用链
 
 ---
 

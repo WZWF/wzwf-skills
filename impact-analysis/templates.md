@@ -85,3 +85,78 @@
 ### 变更建议
 可安全修改，注意同步更新 {相关测试文件}。
 ```
+
+---
+
+## 字段级影响分析报告模板
+
+```markdown
+# 字段变更影响分析报告
+
+> 目标: `{Entity类}.{字段名}` 或 `{表名}.{字段名}`
+> 变更类型: {新增/删除/修改/特殊处理}
+
+## 一、影响概览
+
+| 层级 | 数量 | 说明 |
+|------|------|------|
+| Entity/DO | {N} 个 | 字段定义所在类 |
+| SQL 引用 | {N} 个 | MyBatis XML 中的引用 |
+| Mapper 方法 | {N} 个 | 涉及的数据库操作 |
+| Service | {N} 个 | 业务逻辑层 |
+| Controller | {N} 个 | 接口层 |
+
+## 二、Entity 字段定义
+
+| 类名 | 字段名 | 数据库列名 | 类型 | 文件 |
+|------|--------|-----------|------|------|
+| {User} | {email} | {email} | {String} | {User.java:42} |
+
+## 三、SQL 引用
+
+| 文件 | Statement ID | 类型 | 涉及字段 |
+|------|-------------|------|---------|
+| {UserMapper.xml} | {selectByEmail} | select | {email, name} |
+
+## 四、Mapper 方法
+
+| 类名 | 方法名 | 类型 | 文件 | 行号 |
+|------|--------|------|------|------|
+| {UserMapper} | {selectByEmail} | select | {UserMapper.java} | {15} |
+
+## 五、调用链
+
+```
+Controller 层:
+  └─ UserController.getUser()
+      ↓ 注入
+Service 层:
+  └─ UserService.findByEmail()
+      ↓ 注入
+Mapper 层:
+  └─ UserMapper.selectByEmail()
+      ↓ SQL
+数据库:
+  └─ user.email
+```
+
+## 六、变更建议
+
+### 新增字段
+- [ ] Entity 类添加字段定义
+- [ ] 更新相关 DTO/VO
+- [ ] 修改 INSERT 语句
+- [ ] 更新相关 Service 逻辑
+
+### 删除字段
+- [ ] 确认无业务依赖
+- [ ] Entity 类移除字段
+- [ ] 更新相关 DTO/VO
+- [ ] 修改 DELETE/UPDATE 语句
+
+### 修改字段
+- [ ] 评估类型兼容性
+- [ ] Entity 类修改字段类型
+- [ ] 更新数据转换逻辑
+- [ ] 测试存量数据迁移
+```

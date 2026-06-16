@@ -13,6 +13,22 @@ python impact-scanner.py <project> --target <target> [--depth N] [--output file.
 | `--depth, -d` | 否 | 调用链最大追踪深度（默认 3，设 0 为不限制） |
 | `--output, -o` | 否 | 输出 JSON 文件路径（默认 stdout） |
 
+## 字段级扫描脚本参数
+
+```
+python field-impact-scanner.py <project> --target <target> [--output file.json]
+```
+
+| 参数 | 必选 | 说明 |
+|------|------|------|
+| `project` | 是 | Java 项目根目录（含 pom.xml） |
+| `--target, -t` | 是 | 目标字段，格式: `ClassName.fieldName` 或 `tableName.fieldName` |
+| `--output, -o` | 否 | 输出 JSON 文件路径（默认 stdout） |
+
+**目标格式说明**：
+- `User.email` — 从 Entity 类切入（大写开头表示类名）
+- `user.email` — 从数据库表切入（小写开头表示表名）
+
 ## 深度选择指南
 
 | 深度 | 适用场景 | 地图体积 | 耗时 |
@@ -48,6 +64,64 @@ python impact-scanner.py <project> --target <target> [--depth N] [--output file.
     "level", "factors", "dimensions_hit",
     "total_callers", "total_callees", ...
   }
+}
+```
+
+## 字段级扫描输出 JSON 结构
+
+```
+{
+  "target": {
+    "first": "User",              // Entity 类名或表名
+    "field": "email",             // 字段名
+    "is_table": false             // true=从表名切入, false=从类名切入
+  },
+  "entities": [                   // Entity 字段定义
+    {
+      "class_name": "User",
+      "field_name": "email",
+      "column_name": "email",
+      "field_type": "String",
+      "annotations": ["Column"],
+      "file_path": "User.java",
+      "line": 42
+    }
+  ],
+  "sql_refs": [                   // MyBatis XML 中的 SQL 引用
+    {
+      "file_path": "UserMapper.xml",
+      "statement_id": "selectByEmail",
+      "sql_type": "select",
+      "columns": ["email", "name"],
+      "line": 15
+    }
+  ],
+  "mapper_methods": [             // Mapper 接口方法
+    {
+      "class_name": "UserMapper",
+      "method_name": "selectByEmail",
+      "sql_type": "select",
+      "columns": ["email"],
+      "file_path": "UserMapper.java",
+      "line": 20
+    }
+  ],
+  "call_chain": [                 // Mapper → Service → Controller 调用链
+    {
+      "layer": "mapper",
+      "class_name": "UserMapper",
+      "member_name": "selectByEmail",
+      "file_path": "UserMapper.java",
+      "line": 20
+    },
+    {
+      "layer": "service",
+      "class_name": "UserService",
+      "member_name": "[uses UserMapper]",
+      "file_path": "UserService.java",
+      "line": 0
+    }
+  ]
 }
 ```
 

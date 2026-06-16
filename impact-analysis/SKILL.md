@@ -33,6 +33,18 @@ python "<SKILL_DIR>/scripts/impact-scanner.py" "<PROJECT_ROOT>" --target "ClassN
 
 其中 `<SKILL_DIR>` 为此 SKILL.md 所在目录，`<PROJECT_ROOT>` 为 Java 项目根目录。
 
+### 字段级影响分析
+
+当用户提到"加字段"、"删字段"、"改字段"、"字段脱敏"等场景时，使用：
+
+```bash
+python "<SKILL_DIR>/scripts/field-impact-scanner.py" "<PROJECT_ROOT>" --target "User.email" -o field-impact.json
+python "<SKILL_DIR>/scripts/field-impact-scanner.py" "<PROJECT_ROOT>" --target "user.email" -o field-impact.json
+```
+
+- `User.email` — 从 Entity 类切入（大写开头）
+- `user.email` — 从数据库表切入（小写开头）
+
 ## 四阶段工作流
 
 | 阶段 | 执行者 | 成本 | 做什么 |
