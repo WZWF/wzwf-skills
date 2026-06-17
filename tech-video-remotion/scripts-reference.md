@@ -45,10 +45,12 @@ node generate-timeline-ts.mjs ../audio src/data/timeline.ts
 
 ## validate-project.mjs
 
-一键校验 6 类常见问题：
+一键校验 7 类常见问题：
 
 | 检查项 | 错误/警告 | 说明 |
 |--------|----------|------|
+| **字幕-场景映射** | **Error** | **字幕 JSON 个数/ID 与 timeline 不匹配** |
+| 空字幕文件 | Error | JSON 为空或解析失败 |
 | 字幕重叠 | Error | 相邻字幕 end > next.start |
 | 孤立标点 | Warning | 纯标点字幕应合并 |
 | 时长截断 | Error | duration < 实际音频时长 |

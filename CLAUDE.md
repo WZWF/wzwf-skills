@@ -16,6 +16,7 @@
 - api-doc-gen: API 文档生成
 - arch-diagram: 架构图生成
 - code-archaeology: 代码考古
+- content-fact-check: 内容事实核查
 - database-operations: 数据库操作
 - document-reader: 文档读取
 - impact-analysis: 变更影响分析

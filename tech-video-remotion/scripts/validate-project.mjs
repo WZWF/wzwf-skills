@@ -5,7 +5,8 @@
  * 用法: node validate-project.mjs [remotion-video-dir]
  *
  * 检查项目:
- *   1. 字幕重叠检测 — 相邻字幕 end > next.start
+ *   1a. 字幕重叠检测 — 相邻字幕 end > next.start
+ *   1b. 字幕-场景映射校验 — 字幕 JSON 个数/ID 与 timeline 场景一致
  *   2. 孤立标点检测 — 纯标点符号的字幕条目
  *   3. 时长匹配检测 — timeline.ts duration vs 实际音频时长
  *   4. fadeOut 安全检测 — 场景组件的 fadeOutStart < duration
@@ -65,11 +66,56 @@ if (actualSubsDir) {
   warn("未找到字幕目录 (public/subs/ 或 src/data/subs/)");
 }
 
+// ===== 1b. 字幕-场景映射校验 =====
+console.log("\n🗺️ 字幕-场景映射校验");
+
+const timelinePath = join(rvDir, "src", "data", "timeline.ts");
+
+if (actualSubsDir && existsSync(timelinePath)) {
+  const tlContent = readFileSync(timelinePath, "utf-8");
+  const tlSceneIds = [...tlContent.matchAll(/id:\s*"(scene\d+)"/g)].map((m) => m[1]);
+  const subSceneIds = readdirSync(actualSubsDir)
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => {
+      const m = basename(f, ".json").match(/scene(\d+)/i);
+      return m ? `scene${m[1].padStart(2, "0")}` : null;
+    })
+    .filter(Boolean)
+    .sort();
+
+  const missingInSubs = tlSceneIds.filter((id) => !subSceneIds.includes(id));
+  const extraInSubs = subSceneIds.filter((id) => !tlSceneIds.includes(id));
+
+  if (missingInSubs.length > 0) {
+    error(`timeline 中有 ${missingInSubs.length} 个场景缺少字幕: ${missingInSubs.join(", ")}`);
+  }
+  if (extraInSubs.length > 0) {
+    warn(`字幕目录中有 ${extraInSubs.length} 个多余文件: ${extraInSubs.join(", ")}`);
+  }
+
+  // 检测空字幕文件
+  for (const file of readdirSync(actualSubsDir).filter((f) => f.endsWith(".json"))) {
+    try {
+      const entries = JSON.parse(readFileSync(join(actualSubsDir, file), "utf-8"));
+      if (!Array.isArray(entries) || entries.length === 0) {
+        error(`[${basename(file, ".json")}] 字幕文件为空或非数组`);
+      }
+    } catch (e) {
+      error(`[${basename(file, ".json")}] 字幕 JSON 解析失败: ${e.message}`);
+    }
+  }
+
+  if (missingInSubs.length === 0 && extraInSubs.length === 0) {
+    ok(`字幕文件与 timeline 场景 1:1 匹配 (${tlSceneIds.length} 个场景)`);
+  }
+} else if (!actualSubsDir) {
+  warn("字幕目录不存在，跳过映射校验");
+}
+
 // ===== 2. 时长匹配 =====
 console.log("\n🎵 时长匹配");
 
 const audioPublicDir = join(rvDir, "public", "audio");
-const timelinePath = join(rvDir, "src", "data", "timeline.ts");
 
 if (existsSync(timelinePath)) {
   const timelineContent = readFileSync(timelinePath, "utf-8");

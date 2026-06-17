@@ -39,3 +39,54 @@ async for chunk in comm.stream():
 长句按逗号拆分（每条≤20字），按字符比例分配时间。
 
 输出：`audio/*.mp3` + `subs/*.json`
+
+### 中文 TTS 关键注意事项
+
+**必须使用 `SentenceBoundary`，禁止使用 `WordBoundary`**：
+
+- `WordBoundary` 对中文会逐字/逐词拆分，生成大量碎片字幕（每条 1-3 个字），完全不可用
+- `SentenceBoundary` 按句子粒度切分，中文按标点断句，输出合理
+
+```python
+# 正确：
+if chunk["type"] == "SentenceBoundary":
+
+# 错误：中文场景禁止
+if chunk["type"] == "WordBoundary":
+```
+
+### 单场景重生成工作流
+
+只修改了部分场景的旁白时，无需全量重生成。推荐流程：
+
+```bash
+# 1. 只重生成指定场景（修改 generate-audio-with-subs.py 中的执行逻辑）
+python -c "
+import asyncio
+# 只生成 scene03 和 scene11
+scenes_to_regen = ['scene03', 'scene11']
+# ... 调用 edge_tts 生成
+"
+
+# 2. 用 mutagen 测量新音频时长
+python -c "
+from mutagen.mp3 import MP3
+import os
+for f in ['audio/scene3-xxx.mp3', 'audio/scene11-xxx.mp3']:
+    print(f'{f}: {MP3(f).info.length:.1f}s')
+"
+
+# 3. 手动更新 timeline.ts 中对应 scene 的 duration
+# 4. 拷贝新文件到 public/
+# 5. 验证
+node $SKILL_DIR/scripts/validate-project.mjs .
+```
+
+### 变更传播清单
+
+改旁白时必须同步更新的文件（详见 [troubleshooting.md](troubleshooting.md#跨文件变更一致性)）：
+
+1. `presentation-script.md` → 2. `generate-audio-with-subs.py` → 3. `voiceover-clean.txt`
+4. 运行脚本重生成 `subs/*.json` + `audio/*.mp3`
+5. 更新 `timeline.ts` duration
+6. 核对 `Scene*.tsx` delaySec
